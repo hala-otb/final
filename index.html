@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>العقل المدبر — نظام القرارات الذكي</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050B14;--bg2:#0A1628;--bg3:#0F1F38;
+  --border:rgba(255,255,255,0.07);--card:rgba(255,255,255,0.03);
+  --cyan:#00BCD4;--gold:#F9A825;--green:#00C853;
+  --red:#F44336;--blue:#1565C0;--purple:#7B1FA2;
+  --white:#E8F4FD;--gray:#4A6072;--text:#B0C4D8;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--white);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:rgba(0,0,0,0.2)}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+input,textarea,select{outline:none;font-family:inherit}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes glow{0%,100%{box-shadow:0 0 15px rgba(249,168,37,0.2)}50%{box-shadow:0 0 30px rgba(249,168,37,0.5)}}
+@keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+@keyframes countUp{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
+
+/* ── UPLOAD SCREEN ── */
+.upload-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(21,101,192,0.15) 0%,transparent 60%),radial-gradient(ellipse 60% 60% at 80% 80%,rgba(0,188,212,0.08) 0%,transparent 60%)}
+.upload-hero{text-align:center;margin-bottom:2.5rem}
+.upload-logo{width:80px;height:80px;border-radius:20px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 1.5rem;box-shadow:0 0 40px rgba(0,188,212,0.3);animation:float 4s ease-in-out infinite}
+.upload-title{font-size:42px;font-weight:900;line-height:1.1;margin-bottom:12px;background:linear-gradient(135deg,var(--white),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.upload-sub{color:var(--gray);font-size:15px;line-height:1.7;max-width:500px;margin:0 auto}
+.upload-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,188,212,0.1);border:1px solid rgba(0,188,212,0.25);border-radius:20px;padding:5px 14px;font-size:11px;color:var(--cyan);font-weight:700;letter-spacing:0.1em;margin-bottom:16px}
+.upload-card{background:rgba(255,255,255,0.04);border:1.5px solid var(--border);border-radius:20px;padding:2rem;width:100%;max-width:600px;backdrop-filter:blur(20px)}
+.upload-zone{border:2px dashed var(--border);border-radius:14px;padding:2.5rem;text-align:center;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden}
+.upload-zone:hover,.upload-zone.drag{border-color:rgba(0,188,212,0.5);background:rgba(0,188,212,0.05)}
+.upload-zone.has-file{border-color:rgba(0,200,83,0.4);background:rgba(0,200,83,0.05)}
+.upload-zone-icon{font-size:40px;margin-bottom:12px;display:block}
+.upload-zone h3{font-size:15px;font-weight:700;margin-bottom:6px}
+.upload-zone p{font-size:12px;color:var(--gray)}
+.btn-launch{width:100%;padding:16px;border:none;border-radius:14px;cursor:pointer;font-size:16px;font-weight:800;font-family:inherit;transition:all 0.3s;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-launch.ready{background:linear-gradient(135deg,var(--blue),var(--cyan));color:white;box-shadow:0 8px 30px rgba(0,188,212,0.35)}
+.btn-launch.ready:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,188,212,0.45)}
+.btn-launch.disabled{background:rgba(255,255,255,0.05);color:var(--gray);cursor:not-allowed}
+.agents-preview{display:flex;gap:8px;justify-content:center;margin-top:1.5rem;flex-wrap:wrap}
+.agent-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--gray)}
+
+/* ── ERP LAYOUT ── */
+.erp-layout{display:grid;grid-template-rows:52px 1fr;min-height:100vh}
+.topbar{background:rgba(5,11,20,0.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 1.25rem;position:sticky;top:0;z-index:200;backdrop-filter:blur(20px)}
+.topbar-brand{display:flex;align-items:center;gap:10px}
+.topbar-logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:14px}
+.topbar-title{font-weight:800;font-size:13px}
+.topbar-sub{font-size:9px;color:var(--gray)}
+.topbar-status{display:flex;align-items:center;gap:10px}
+.status-pill{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
+.status-pill.running{background:rgba(249,168,37,0.12);border:1px solid rgba(249,168,37,0.25);color:var(--gold)}
+.status-pill.done{background:rgba(0,200,83,0.12);border:1px solid rgba(0,200,83,0.25);color:var(--green)}
+.status-pill.idle{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--gray)}
+.topbar-agents{display:flex;gap:4px}
+.ta{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all 0.3s}
+
+.erp-body{display:grid;grid-template-columns:220px 1fr 260px;overflow:hidden;height:calc(100vh - 52px)}
+
+/* ── LEFT SIDEBAR ── */
+.sidebar-left{background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;padding:12px 8px;display:flex;flex-direction:column;gap:8px}
+.sidebar-section{font-size:9px;font-weight:700;color:var(--gray);letter-spacing:0.12em;padding:4px 8px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;cursor:pointer;transition:all 0.2s;font-size:12px;font-weight:600;color:var(--gray)}
+.nav-item:hover,.nav-item.active{background:rgba(0,188,212,0.08);color:var(--white)}
+.nav-item.active{border-right:2px solid var(--cyan);color:var(--cyan)}
+.nav-icon{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.pipeline-mini{padding:4px 4px}
+.pipe-step{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:8px;margin-bottom:2px;transition:all 0.2s}
+.pipe-step.running{background:rgba(249,168,37,0.08)}
+.pipe-dot{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;border:1.5px solid transparent;transition:all 0.3s}
+.pipe-dot.done{border-color:var(--green)}
+.pipe-dot.running{border-color:var(--gold);animation:pulse 1s infinite}
+.pipe-line{width:1px;height:8px;margin:1px auto;background:var(--border);transition:background 0.3s;margin-right:10px}
+.pipe-line.done{background:var(--green)}
+.pipe-name{font-size:10px;font-weight:600;flex:1}
+.pipe-score{font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px}
+
+/* ── MAIN CONTENT ── */
+.main-content{overflow-y:auto;background:var(--bg);padding:14px;display:flex;flex-direction:column;gap:12px}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;position:relative;overflow:hidden;transition:all 0.3s;animation:fadeIn 0.5s ease}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
+.kpi-card:nth-child(1)::before{background:var(--green)}
+.kpi-card:nth-child(2)::before{background:var(--cyan)}
+.kpi-card:nth-child(3)::before{background:var(--gold)}
+.kpi-card:nth-child(4)::before{background:#CE93D8}
+.kpi-label{font-size:10px;color:var(--gray);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em}
+.kpi-value{font-size:28px;font-weight:900;line-height:1;margin-bottom:4px}
+.kpi-trend{font-size:11px;color:var(--gray)}
+.kpi-icon{position:absolute;left:12px;top:12px;font-size:20px;opacity:0.15}
+
+/* CHARTS ROW */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem}
+.chart-title{font-size:11px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.chart-wrap{height:160px;position:relative}
+
+/* DECISIONS */
+.decisions-section{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.section-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.section-title{font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px}
+.decisions-list{padding:10px}
+.dec-row{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:start;padding:10px;border-radius:10px;border:1px solid var(--border);margin-bottom:8px;transition:all 0.3s;animation:slideIn 0.4s ease;cursor:pointer}
+.dec-row:hover{background:rgba(255,255,255,0.03)}
+.dec-row.approved{border-color:rgba(0,200,83,0.3);background:rgba(0,200,83,0.03)}
+.dec-row.deferred{opacity:0.4}
+.dec-rank{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.dec-body{min-width:0}
+.dec-title{font-size:13px;font-weight:700;margin-bottom:4px}
+.dec-rationale{font-size:11px;color:var(--text);line-height:1.6;margin-bottom:6px}
+.dec-action{background:rgba(0,188,212,0.07);border:1px solid rgba(0,188,212,0.15);border-radius:7px;padding:6px 9px;font-size:11px;color:var(--cyan);margin-bottom:6px}
+.dec-meta{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px}
+.dec-actions{display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.btn-approve{padding:6px 10px;border:1px solid rgba(0,200,83,0.3);border-radius:7px;background:rgba(0,200,83,0.1);color:var(--green);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn-defer{padding:6px 10px;border:1px solid var(--border);border-radius:7px;background:transparent;color:var(--gray);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+
+/* WAITING STATE */
+.waiting{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem;gap:12px;color:var(--gray);text-align:center}
+.waiting-spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,0.05);border-top-color:var(--cyan);border-radius:50%;animation:spin 0.8s linear infinite}
+
+/* ── RIGHT SIDEBAR ── */
+.sidebar-right{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.right-card{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:12px}
+.right-title{font-size:10px;font-weight:700;letter-spacing:0.1em;margin-bottom:10px;text-transform:uppercase}
+
+/* RADAR */
+.radar-wrap{height:180px;position:relative}
+
+/* MASTER SCORE */
+.master-ring-wrap{text-align:center;padding:8px 0}
+.master-label{font-size:9px;color:var(--gray);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px}
+.master-summary{font-size:11px;color:var(--text);line-height:1.65;margin-top:10px;text-align:right}
+
+/* LOG */
+.log-box{background:rgba(0,0,0,0.2);border-radius:8px;padding:8px;height:180px;overflow-y:auto;font-family:monospace}
+.log-row{display:flex;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.02);font-size:10px}
+.log-time{color:#1C3040;white-space:nowrap}
+.log-icon{flex-shrink:0}
+.log-msg{line-height:1.4}
+
+/* OPP/THREAT */
+.ot-card{border-radius:10px;padding:10px}
+.ot-title{font-size:10px;font-weight:700;margin-bottom:5px}
+.ot-body{font-size:11px;line-height:1.55}
+
+/* PROGRESS BAR */
+.prog-row{margin-bottom:8px}
+.prog-label{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px}
+.prog-bar{height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width 1.2s ease}
+
+/* LOADING OVERLAY */
+.loading-overlay{position:fixed;inset:0;background:rgba(5,11,20,0.85);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.loading-box{background:var(--bg2);border:1px solid rgba(249,168,37,0.2);border-radius:20px;padding:2rem;width:360px;text-align:center;animation:glow 2s infinite}
+.loading-brain{font-size:48px;margin-bottom:12px;animation:float 2s ease-in-out infinite}
+.loading-title{font-size:16px;font-weight:800;margin-bottom:6px;color:var(--gold)}
+.loading-sub{font-size:12px;color:var(--gray);margin-bottom:16px}
+.loading-progress{background:rgba(255,255,255,0.05);border-radius:4px;height:6px;overflow:hidden;margin-bottom:12px}
+.loading-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));border-radius:4px;transition:width 0.5s ease}
+.loading-step{font-size:11px;color:var(--text)}
+
+/* EMPTY STATE */
+.empty-main{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--gray)}
+.empty-icon{font-size:40px;opacity:0.15}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// ═══════════════════════════════════════════════════════════
+// AGENTS CONFIG
+// ═══════════════════════════════════════════════════════════
+const AG = [
+  {id:0,i:"🌍",n:"وكيل السوق",c:"#00BCD4",bg:"rgba(0,188,212,.12)",
+   s:`أنت وكيل تحليل السوق والمنافسين للمنشآت السعودية. حلل البيانات بدقة وأرجع JSON فقط:
+{"score":75,"findings":["نتيجة تحليلية 1","نتيجة تحليلية 2","نتيجة تحليلية 3"],"opportunity":"الفرصة السوقية الأكبر","threat":"أكبر تهديد تنافسي"}`},
+  {id:1,i:"💰",n:"وكيل المالية",c:"#4FC3F7",bg:"rgba(79,195,247,.12)",
+   s:`أنت وكيل التحليل المالي للمنشآت السعودية. حلل الأرقام وأرجع JSON فقط:
+{"score":70,"findings":["تحليل مالي 1","تحليل مالي 2","تحليل مالي 3"],"strength":"أبرز نقطة قوة مالية بالأرقام","weakness":"أبرز نقطة ضعف مالية بالأرقام"}`},
+  {id:2,i:"📦",n:"وكيل المخزون",c:"#A5D6A7",bg:"rgba(165,214,167,.12)",
+   s:`أنت وكيل إدارة المخزون. حلل بيانات المخزون وأرجع JSON فقط:
+{"score":60,"findings":["ملاحظة مخزون 1","ملاحظة مخزون 2","ملاحظة مخزون 3"],"urgent":"إجراء عاجل للمخزون","risk":"أكبر خطر في المخزون"}`},
+  {id:3,i:"👥",n:"وكيل العملاء",c:"#CE93D8",bg:"rgba(206,147,216,.12)",
+   s:`أنت وكيل تحليل العملاء وتجربتهم. حلل البيانات وأرجع JSON فقط:
+{"score":72,"findings":["تحليل عملاء 1","تحليل عملاء 2","تحليل عملاء 3"],"positive":"أقوى نقطة في تجربة العملاء","gap":"أكبر فجوة في رضا العملاء"}`},
+  {id:4,i:"⚠️",n:"وكيل المخاطر",c:"#FF8A65",bg:"rgba(255,138,101,.12)",
+   s:`أنت وكيل إدارة المخاطر. حلل مخاطر الشركة وأرجع JSON فقط:
+{"score":45,"findings":["خطر محدد 1","خطر محدد 2","خطر محدد 3"],"critical":"الخطر الأعلى أولوية","mitigation":"الإجراء الوقائي الفوري"}`},
+  {id:5,i:"📣",n:"وكيل التسويق",c:"#F48FB1",bg:"rgba(244,143,177,.12)",
+   s:`أنت وكيل التسويق الرقمي وتكلفة الاكتساب. حلل البيانات وأرجع JSON فقط:
+{"score":65,"findings":["تحليل تسويقي 1","تحليل تسويقي 2","تحليل تسويقي 3"],"best_channel":"أفضل قناة بالأرقام","action":"توصية تسويقية فورية"}`},
+  {id:6,i:"👔",n:"وكيل الموارد",c:"#FFD54F",bg:"rgba(255,213,79,.12)",
+   s:`أنت وكيل الموارد البشرية وأداء الفريق. حلل بيانات الموظفين وأرجع JSON فقط:
+{"score":68,"findings":["ملاحظة HR 1","ملاحظة HR 2","ملاحظة HR 3"],"talent":"الموظف أو القسم الأبرز","retention_risk":"أكبر خطر استقالة أو دوران"}`},
+];
+
+const MASTER = `أنت العقل المدبر — المحلل الرئيسي الاستراتيجي.
+قرأت مخرجات 7 وكلاء متخصصين. الآن تصدر تقريراً استراتيجياً شاملاً.
+أرجع JSON فقط:
+{
+  "overall_score": 71,
+  "executive_summary": "ملخص تنفيذي دقيق 3-4 جمل عن الوضع الفعلي",
+  "dashboard": {
+    "financial_health": 72,
+    "market_position": 65,
+    "operational_efficiency": 60,
+    "customer_satisfaction": 74,
+    "team_health": 66,
+    "risk_level": 45
+  },
+  "kpis": {
+    "monthly_revenue": "1.84 مليون ريال",
+    "profit_margin": "26%",
+    "customer_retention": "88%",
+    "team_performance": "3.8/5"
+  },
+  "decisions": [
+    {
+      "rank": 1,
+      "priority": "عاجل",
+      "impact": "عالي",
+      "title": "عنوان القرار الاستراتيجي",
+      "rationale": "المبرر بالأرقام والأدلة من مخرجات الوكلاء",
+      "action": "الإجراء المحدد القابل للتنفيذ فوراً",
+      "kpi": "مؤشر قياس النجاح",
+      "source_agents": ["وكيل المالية", "وكيل المخاطر"]
+    }
+  ],
+  "top_opportunity": "أكبر فرصة مدعومة بالبيانات",
+  "top_threat": "أكبر تهديد مدعوم بالبيانات",
+  "next_48h": "الإجراء الأول خلال 48 ساعة"
+}
+القرارات: 5-7 مرتبة. priority: عاجل/مهم/تحسين. impact: عالي/متوسط/منخفض.`;
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let S = {
+  screen: 'upload',       // upload | running | dashboard
+  fileText: '', fileName: '',
+  agentStatus: {}, agentData: {},
+  masterStatus: 'idle', masterData: null,
+  log: [], votes: {},
+  activeNav: 'overview',
+  progress: 0, loadingStep: '',
+  charts: {}
+};
+
+// ═══════════════════════════════════════════════════════════
+// API
+// ═══════════════════════════════════════════════════════════
+async function ai(system, user) {
+  const r = await fetch('/api/chat', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ system, user })
+  });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  const t = d.content?.[0]?.text || '';
+  const m = t.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('JSON غير صحيح');
+  return JSON.parse(m[0]);
+}
+
+function addLog(icon, msg, color = '#4A6072') {
+  const t = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  S.log.push({ t, icon, msg, color });
+  if (S.log.length > 60) S.log.shift();
+  const lb = document.getElementById('logbox');
+  if (lb) { lb.innerHTML = renderLog(); lb.scrollTop = lb.scrollHeight; }
+  updatePipeline();
+}
+
+// ═══════════════════════════════════════════════════════════
+// PIPELINE
+// ═══════════════════════════════════════════════════════════
+async function runAnalysis(fileText) {
+  S.agentData = {}; S.agentStatus = {}; S.masterData = null;
+  S.masterStatus = 'idle'; S.log = []; S.votes = {};
+  S.screen = 'running'; S.progress = 0;
+  renderLoading();
+
+  const base = `بيانات الملف:\n${fileText}\n\nالتاريخ: ${new Date().toLocaleDateString('ar-SA')}`;
+
+  addLog('🚀', 'انطلق نظام العقل المدبر...', '#00BCD4');
+
+  const col = {};
+  for (let i = 0; i < AG.length; i++) {
+    const ag = AG[i];
+    S.agentStatus[ag.id] = 'running';
+    S.progress = Math.round(((i) / (AG.length + 1)) * 90);
+    S.loadingStep = `${ag.i} ${ag.n} يحلل البيانات...`;
+    renderLoadingProgress();
+    addLog(ag.i, `${ag.n} يحلل البيانات...`, ag.c);
+    try {
+      const res = await ai(ag.s, base);
+      col[ag.id] = res; S.agentData[ag.id] = res; S.agentStatus[ag.id] = 'done';
+      addLog(ag.i, `${ag.n} ✅  النتيجة: ${res.score}/100`, ag.c);
+    } catch (e) {
+      col[ag.id] = null; S.agentStatus[ag.id] = 'error';
+      addLog(ag.i, `${ag.n} ⚠️  ${e.message?.slice(0, 60)}`, '#F44336');
+    }
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  S.progress = 92; S.loadingStep = '🧠 العقل المدبر يقرأ الـ 7 مخرجات ويحلل...';
+  renderLoadingProgress();
+  addLog('─', '──────────────────────────────────', '#1C3040');
+  addLog('🧠', 'جميع الوكلاء انتهوا — العقل المدبر يحلل...', '#F9A825');
+  S.masterStatus = 'running';
+
+  const mi = base + '\n\n' + '═'.repeat(50) + '\nمخرجات الوكلاء:\n\n' +
+    AG.map(ag => `【${ag.n}】:\n${col[ag.id] ? JSON.stringify(col[ag.id], null, 2) : 'لا بيانات'}`).join('\n\n');
+
+  try {
+    const master = await ai(MASTER, mi);
+    S.masterData = master; S.masterStatus = 'done';
+    S.progress = 100;
+    addLog('🧠', `العقل المدبر ✅  أصدر ${master.decisions?.length || 0} قرارات — النتيجة: ${master.overall_score}/100`, '#F9A825');
+  } catch (e) {
+    S.masterStatus = 'error';
+    addLog('🧠', `العقل المدبر ⚠️  ${e.message?.slice(0, 80)}`, '#F44336');
+  }
+
+  S.screen = 'dashboard';
+  renderDashboard();
+  setTimeout(() => buildCharts(), 200);
+}
+
+// ═══════════════════════════════════════════════════════════
+// FILE READING
+// ═══════════════════════════════════════════════════════════
+function readFile(file) {
+  if (!file) return;
+  S.fileName = file.name;
+  const r = new FileReader();
+  r.onload = ev => {
+    const wb = XLSX.read(ev.target.result, { type: 'binary' });
+    let txt = '';
+    wb.SheetNames.forEach(n => {
+      const ws = wb.Sheets[n];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      const s = rows.slice(0, 50).map(r => r.filter(x => x !== undefined && x !== '').join(' | ')).filter(Boolean).join('\n');
+      if (s) txt += `\n[${n}]:\n${s}\n`;
+    });
+    S.fileText = txt;
+    document.getElementById('uploadZone').classList.add('has-file');
+    document.getElementById('uploadIcon').textContent = '✅';
+    document.getElementById('uploadTitle').textContent = file.name;
+    document.getElementById('uploadDesc').textContent = `${wb.SheetNames.length} ورقة — جاهز للتحليل`;
+    const btn = document.getElementById('launchBtn');
+    btn.className = 'btn-launch ready';
+    btn.removeAttribute('disabled');
+    btn.innerHTML = `<span>🧠</span><span>تحليل "${file.name}" الآن ←</span>`;
+    btn.onclick = () => { runAnalysis(S.fileText); };
+  };
+  r.readAsBinaryString(file);
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+const spin = () => `<div style="width:10px;height:10px;border:2px solid #F9A825;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;display:inline-block"></div>`;
+
+function ring(v, color, size = 70) {
+  const r = size / 2 - 6, c = 2 * Math.PI * r, d = ((v || 0) / 100) * c;
+  return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg)">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="6"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="6"
+      stroke-dasharray="${d} ${c}" stroke-linecap="round" style="transition:stroke-dasharray 1.5s ease"/>
+    <text x="${size/2}" y="${size/2+1}" text-anchor="middle" dominant-baseline="middle"
+      fill="${color}" font-size="${size/4}" font-weight="900" font-family="Arial"
+      transform="rotate(90,${size/2},${size/2})">${v || 0}</text></svg>`;
+}
+
+function progBar(label, value, color) {
+  return `<div class="prog-row">
+    <div class="prog-label"><span>${label}</span><span style="color:${color};font-weight:700">${value || 0}</span></div>
+    <div class="prog-bar"><div class="prog-fill" style="width:${value || 0}%;background:${color}"></div></div></div>`;
+}
+
+function pColor(p) { return p === 'عاجل' ? '#F44336' : p === 'مهم' ? '#F9A825' : '#00C853'; }
+function iColor(i) { return i === 'عالي' ? '#F44336' : i === 'متوسط' ? '#F9A825' : '#00C853'; }
+
+function renderLog() {
+  return S.log.map(l => `<div class="log-row"><span class="log-time">${l.t}</span><span class="log-icon">${l.icon}</span><span class="log-msg" style="color:${l.color}">${l.msg}</span></div>`).join('');
+}
+
+function updatePipeline() {
+  const el = document.getElementById('pipelineContainer');
+  if (el) el.innerHTML = renderPipeline();
+}
+
+function renderPipeline() {
+  let h = '';
+  AG.forEach((ag, i) => {
+    const st = S.agentStatus[ag.id] || 'idle', res = S.agentData[ag.id];
+    h += `<div class="pipe-step ${st === 'running' ? 'running' : ''}">
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="pipe-dot ${st}" style="background:${ag.bg}">
+          ${st === 'running' ? spin() : ag.i}
+        </div>
+        ${i < AG.length - 1 ? `<div class="pipe-line ${st === 'done' ? 'done' : ''}"></div>` : ''}
+      </div>
+      <div style="flex:1"><div class="pipe-name" style="color:${st === 'done' ? '#E8F4FD' : '#4A6072'}">${ag.n}</div>
+        ${res ? `<div style="height:2px;background:rgba(255,255,255,.05);border-radius:2px;margin-top:2px;overflow:hidden"><div style="height:100%;width:${res.score || 0}%;background:${ag.c};border-radius:2px;transition:width 1s ease"></div></div>` : ''}</div>
+      <div class="pipe-score" style="background:${st === 'running' ? 'rgba(249,168,37,.15)' : st === 'done' ? 'rgba(0,200,83,.12)' : 'rgba(255,255,255,.04)'};color:${st === 'running' ? '#F9A825' : st === 'done' ? '#00C853' : '#4A6072'}">
+        ${st === 'running' ? '⚡' : st === 'done' ? (res?.score || '✓') : '—'}</div>
+    </div>`;
+  });
+  const mst = S.masterStatus, md = S.masterData;
+  h += `<div style="display:flex;justify-content:center;margin:2px 0"><div style="width:1px;height:12px;background:${mst !== 'idle' ? '#F9A825' : 'rgba(255,255,255,.08)'};transition:background .5s;margin-right:10px"></div></div>
+  <div class="pipe-step" style="background:${mst === 'done' ? 'rgba(249,168,37,.08)' : mst === 'running' ? 'rgba(249,168,37,.05)' : 'transparent'};border-radius:8px;padding:6px;${mst === 'running' ? 'animation:glow 1.5s infinite' : ''}">
+    <div style="width:20px;height:20px;border-radius:6px;background:rgba(249,168,37,.15);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">
+      ${mst === 'running' ? spin() : '🧠'}</div>
+    <div style="flex:1"><div class="pipe-name" style="color:#F9A825;font-weight:700">العقل المدبر</div></div>
+    <div class="pipe-score" style="background:${mst === 'done' ? 'rgba(249,168,37,.2)' : 'rgba(255,255,255,.04)'};color:${mst === 'done' ? '#F9A825' : '#4A6072'}">
+      ${mst === 'done' ? (md?.overall_score || '✓') : mst === 'running' ? '⚡' : '—'}</div>
+  </div>`;
+  return h;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════════════
+function buildCharts() {
+  const md = S.masterData;
+  if (!md) return;
+  const db = md.dashboard || {};
+
+  // Radar chart
+  const radarCtx = document.getElementById('radarChart');
+  if (radarCtx) {
+    if (S.charts.radar) S.charts.radar.destroy();
+    S.charts.radar = new Chart(radarCtx, {
+      type: 'radar',
+      data: {
+        labels: ['المالية', 'السوق', 'التشغيل', 'العملاء', 'الفريق', 'الأمان'],
+        datasets: [{
+          data: [db.financial_health, db.market_position, db.operational_efficiency, db.customer_satisfaction, db.team_health, db.risk_level],
+          backgroundColor: 'rgba(0,188,212,0.15)', borderColor: '#00BCD4', pointBackgroundColor: '#00BCD4', borderWidth: 2, pointRadius: 3
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, grid: { color: 'rgba(255,255,255,0.06)' }, pointLabels: { color: '#4A6072', font: { size: 10, family: 'Segoe UI' } }, angleLines: { color: 'rgba(255,255,255,0.06)' } } }
+      }
+    });
+  }
+
+  // Agent scores bar chart
+  const barCtx = document.getElementById('agentBarChart');
+  if (barCtx) {
+    if (S.charts.bar) S.charts.bar.destroy();
+    S.charts.bar = new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: AG.map(a => a.n.replace('وكيل ', '')),
+        datasets: [{
+          data: AG.map(a => S.agentData[a.id]?.score || 0),
+          backgroundColor: AG.map(a => a.c + '33'), borderColor: AG.map(a => a.c),
+          borderWidth: 1.5, borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#4A6072', font: { size: 9 } }, grid: { display: false } },
+          y: { min: 0, max: 100, ticks: { color: '#4A6072', font: { size: 9 }, stepSize: 25 }, grid: { color: 'rgba(255,255,255,0.04)' } }
+        }
+      }
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER: UPLOAD
+// ═══════════════════════════════════════════════════════════
+function renderUpload() {
+  document.getElementById('root').innerHTML = `
+<div class="upload-screen">
+  <div class="upload-hero">
+    <div class="upload-logo">🧠</div>
+    <div class="upload-badge">⚡ AGENTIC AI • نظام القرارات الذكي</div>
+    <h1 class="upload-title">العقل المدبر</h1>
+    <p class="upload-sub">ارفع ملف Excel الخاص بشركتك — 7 وكلاء متخصصين يحللون بياناتك فوراً والعقل المدبر يُصدر قرارات استراتيجية مدعومة بالأدلة</p>
+  </div>
+
+  <div class="upload-card">
+    <div class="upload-zone" id="uploadZone"
+      onclick="document.getElementById('fileIn').click()"
+      ondragover="event.preventDefault();this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="event.preventDefault();this.classList.remove('drag');readFile(event.dataTransfer.files[0])">
+      <input id="fileIn" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="readFile(this.files[0])"/>
+      <span class="upload-zone-icon" id="uploadIcon">📊</span>
+      <h3 id="uploadTitle">اسحب ملف Excel هنا أو اضغط للاختيار</h3>
+      <p id="uploadDesc">يدعم .xlsx و .xls و .csv — المبيعات، المخزون، الموظفين، العملاء</p>
+    </div>
+    <button id="launchBtn" class="btn-launch disabled" onclick="if(S.fileText)runAnalysis(S.fileText)">
+      <span>🧠</span><span>اختر ملف Excel أولاً</span>
+    </button>
+  </div>
+
+  <div class="agents-preview">
+    ${AG.map(a => `<div class="agent-pill"><span>${a.i}</span><span>${a.n}</span></div>`).join('')}
+    <div class="agent-pill">🧠 العقل المدبر</div>
+  </div>
+</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER: LOADING
+// ═══════════════════════════════════════════════════════════
+function renderLoading() {
+  document.getElementById('root').innerHTML = `
+<div style="min-height:100vh;background:var(--bg);display:flex;align-items:center;justify-content:center">
+  <div class="loading-box">
+    <div class="loading-brain">🧠</div>
+    <div class="loading-title">العقل المدبر يعمل</div>
+    <div class="loading-sub" id="loadingStep">${S.loadingStep || 'جاري التحليل...'}</div>
+    <div class="loading-progress"><div class="loading-bar" id="loadingBar" style="width:${S.progress}%"></div></div>
+    <div class="loading-step" id="loadingPct">${S.progress}%</div>
+    <div id="logbox" class="log-box" style="margin-top:12px;height:120px">${renderLog()}</div>
+  </div>
+</div>`;
+}
+
+function renderLoadingProgress() {
+  const b = document.getElementById('loadingBar');
+  const s = document.getElementById('loadingStep');
+  const p = document.getElementById('loadingPct');
+  if (b) b.style.width = S.progress + '%';
+  if (s) s.textContent = S.loadingStep;
+  if (p) p.textContent = S.progress + '%';
+  const lb = document.getElementById('logbox');
+  if (lb) { lb.innerHTML = renderLog(); lb.scrollTop = lb.scrollHeight; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER: DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function renderDashboard() {
+  const md = S.masterData, db = md?.dashboard || {}, kpis = md?.kpis || {};
+  const decs = md?.decisions || [];
+  const approved = Object.values(S.votes).filter(v => v === true).length;
+  const doneCount = Object.values(S.agentStatus).filter(s => s === 'done').length;
+
+  document.getElementById('root').innerHTML = `
+<div class="erp-layout">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">🧠</div>
+      <div><div class="topbar-title">العقل المدبر — ${S.fileName}</div>
+      <div class="topbar-sub">آخر تحليل: ${new Date().toLocaleString('ar-SA')}</div></div>
+    </div>
+    <div class="topbar-status">
+      <div class="topbar-agents">
+        ${AG.map(a => {
+          const st = S.agentStatus[a.id] || 'idle';
+          return `<div class="ta" title="${a.n}" style="background:${a.bg};border:1.5px solid ${st==='done'?a.c:st==='running'?'#F9A825':'transparent'}">${st==='running'?`<div style="width:8px;height:8px;border:1.5px solid #F9A825;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></div>`:a.i}</div>`;
+        }).join('')}
+        <div class="ta" style="background:rgba(249,168,37,.15);border:1.5px solid ${S.masterStatus==='done'?'#F9A825':'transparent'}">🧠</div>
+      </div>
+      <div class="status-pill ${S.masterStatus==='done'?'done':S.masterStatus==='running'?'running':'idle'}">
+        ${S.masterStatus==='done'?`✅ اكتمل • ${decs.length} قرار`:S.masterStatus==='running'?`${spin()} يحلل...`:`الوكلاء: ${doneCount}/${AG.length}`}
+      </div>
+      <button onclick="backToUpload()" style="background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--gray);border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit">📊 ملف جديد</button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="erp-body">
+
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar-left">
+      <div class="sidebar-section">التنقل</div>
+      ${[
+        {id:'overview',icon:'🏠',label:'نظرة عامة'},
+        {id:'decisions',icon:'🎯',label:`القرارات (${decs.length})`},
+        {id:'agents',icon:'🔬',label:'نتائج الوكلاء'},
+        {id:'log',icon:'📡',label:'السجل المباشر'},
+      ].map(n => `<div class="nav-item ${S.activeNav===n.id?'active':''}" onclick="setNav('${n.id}')">
+        <div class="nav-icon" style="background:rgba(255,255,255,.04)">${n.icon}</div>
+        <span>${n.label}</span>
+      </div>`).join('')}
+
+      <div class="sidebar-section" style="margin-top:8px">سلسلة التحليل</div>
+      <div class="pipeline-mini" id="pipelineContainer">${renderPipeline()}</div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content" id="mainContent">
+      ${renderMainContent()}
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="sidebar-right">
+
+      <!-- Master Score -->
+      <div class="right-card" style="${md?'border-color:rgba(249,168,37,.2);background:rgba(249,168,37,.03)':''}">
+        <div class="right-title" style="color:#F9A825">🧠 العقل المدبر</div>
+        ${md ? `
+          <div class="master-ring-wrap">${ring(md.overall_score||0,'#F9A825',90)}</div>
+          <div class="master-summary">${md.executive_summary||''}</div>` :
+          `<div style="color:var(--gray);font-size:12px;padding:.5rem 0;text-align:center">${S.masterStatus==='running'?'🧠 يحلل...':'ينتظر الوكلاء...'}</div>`}
+      </div>
+
+      <!-- Dashboard Bars -->
+      ${md ? `<div class="right-card">
+        <div class="right-title" style="color:#CE93D8">📊 مؤشرات الأداء</div>
+        ${progBar('الصحة المالية', db.financial_health, '#00C853')}
+        ${progBar('الموقع التنافسي', db.market_position, '#00BCD4')}
+        ${progBar('الكفاءة التشغيلية', db.operational_efficiency, '#F9A825')}
+        ${progBar('رضا العملاء', db.customer_satisfaction, '#CE93D8')}
+        ${progBar('صحة الفريق', db.team_health, '#FFD54F')}
+        ${progBar('مستوى الأمان', db.risk_level, '#FF8A65')}
+      </div>` : ''}
+
+      <!-- Opportunity & Threat -->
+      ${md ? `<div style="display:flex;flex-direction:column;gap:8px">
+        <div class="ot-card" style="background:rgba(0,200,83,.06);border:1px solid rgba(0,200,83,.18)">
+          <div class="ot-title" style="color:#00C853">🚀 أكبر فرصة</div>
+          <div class="ot-body" style="color:var(--text)">${md.top_opportunity||''}</div>
+        </div>
+        <div class="ot-card" style="background:rgba(244,67,54,.06);border:1px solid rgba(244,67,54,.18)">
+          <div class="ot-title" style="color:#F44336">⚠️ أكبر تهديد</div>
+          <div class="ot-body" style="color:var(--text)">${md.top_threat||''}</div>
+        </div>
+        ${md.next_48h?`<div class="ot-card" style="background:rgba(249,168,37,.06);border:1px solid rgba(249,168,37,.2)">
+          <div class="ot-title" style="color:#F9A825">⚡ خلال 48 ساعة</div>
+          <div class="ot-body" style="color:var(--text)">${md.next_48h}</div>
+        </div>`:''}
+      </div>` : ''}
+
+      <!-- Log -->
+      <div class="right-card">
+        <div class="right-title" style="color:var(--cyan)">📡 السجل</div>
+        <div id="logbox" class="log-box">${renderLog()}</div>
+      </div>
+
+    </div>
+  </div>
+</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN CONTENT SECTIONS
+// ═══════════════════════════════════════════════════════════
+function renderMainContent() {
+  if (S.activeNav === 'overview') return renderOverview();
+  if (S.activeNav === 'decisions') return renderDecisions();
+  if (S.activeNav === 'agents') return renderAgents();
+  if (S.activeNav === 'log') return renderFullLog();
+  return renderOverview();
+}
+
+function renderOverview() {
+  const md = S.masterData, db = md?.dashboard || {}, kpis = md?.kpis || {};
+  const decs = md?.decisions || [];
+  const approved = Object.values(S.votes).filter(v => v === true).length;
+
+  if (!md) return `<div class="empty-main"><div class="empty-icon">📊</div><div style="font-weight:600">جاري التحليل...</div></div>`;
+
+  return `
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    ${[
+      {label:'الإيرادات الشهرية',value:kpis.monthly_revenue||'—',trend:'من بيانات الملف',icon:'💰',color:'#00C853'},
+      {label:'هامش الربح',value:kpis.profit_margin||'—',trend:'صافي',icon:'📈',color:'#00BCD4'},
+      {label:'الاحتفاظ بالعملاء',value:kpis.customer_retention||'—',trend:'معدل شهري',icon:'👥',color:'#F9A825'},
+      {label:'أداء الفريق',value:kpis.team_performance||'—',trend:'من 5 نقاط',icon:'👔',color:'#CE93D8'},
+    ].map(k => `<div class="kpi-card">
+      <div class="kpi-icon">${k.icon}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="color:${k.color}">${k.value}</div>
+      <div class="kpi-trend">${k.trend}</div>
+    </div>`).join('')}
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">🎯 نتائج الوكلاء السبعة</div>
+      <div class="chart-wrap"><canvas id="agentBarChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🔮 مؤشرات الأداء الشاملة</div>
+      <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Top 3 Decisions Preview -->
+  <div class="decisions-section">
+    <div class="section-header">
+      <div class="section-title">🎯 أهم القرارات <span style="background:rgba(249,168,37,.15);color:#F9A825;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;margin-right:8px">${decs.length}</span></div>
+      <button onclick="setNav('decisions')" style="background:rgba(0,188,212,.1);border:1px solid rgba(0,188,212,.2);color:#00BCD4;border-radius:7px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">عرض الكل ←</button>
+    </div>
+    <div class="decisions-list">
+      ${decs.slice(0, 3).map((d, i) => renderDecCard(d, i, true)).join('')}
+    </div>
+  </div>`;
+}
+
+function renderDecisions() {
+  const md = S.masterData;
+  if (!md) return `<div class="empty-main"><div class="waiting-spinner"></div><div style="margin-top:10px">${S.masterStatus==='running'?'🧠 العقل المدبر يصدر القرارات...':'انتظر اكتمال التحليل'}</div></div>`;
+  const decs = md.decisions || [];
+  const approved = Object.values(S.votes).filter(v => v === true).length;
+  return `
+  <div class="decisions-section" style="border:none;background:transparent">
+    <div class="section-header" style="background:var(--card);border:1px solid var(--border);border-radius:12px 12px 0 0">
+      <div class="section-title">🎯 قرارات العقل المدبر <span style="background:rgba(249,168,37,.15);color:#F9A825;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;margin-right:8px">${decs.length} قرار</span></div>
+      ${approved>0?`<div style="background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.25);color:#00C853;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700">✅ ${approved} موافق عليه</div>`:''}
+    </div>
+    ${md.next_48h?`<div style="background:rgba(249,168,37,.08);border:1px solid rgba(249,168,37,.25);border-radius:0 0 0 0;padding:10px 14px;display:flex;align-items:center;gap:10px;border-top:none">
+      <span style="font-size:18px">⚡</span>
+      <div><div style="font-size:10px;color:#F9A825;font-weight:700;margin-bottom:2px">الخطوة الأولى خلال 48 ساعة</div>
+      <div style="font-size:13px;color:#E8F4FD;font-weight:600">${md.next_48h}</div></div></div>`:''}
+    <div class="decisions-list" style="background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px">
+      ${decs.map((d, i) => renderDecCard(d, i, false)).join('')}
+    </div>
+  </div>`;
+}
+
+function renderDecCard(d, i, compact) {
+  const v = S.votes[i];
+  const pc = pColor(d.priority), ic = iColor(d.impact);
+  return `<div class="dec-row ${v===true?'approved':v===false?'deferred':''}" style="border-right-color:${pc}">
+    <div class="dec-rank" style="background:${pc}22;color:${pc}">${d.rank}</div>
+    <div class="dec-body">
+      <div class="dec-title">${d.title}</div>
+      <div class="dec-rationale">${d.rationale}</div>
+      ${!compact?`<div class="dec-action">⚡ ${d.action}</div>`:''}
+      <div class="dec-meta">
+        <span class="tag" style="background:${pc}22;color:${pc}">${d.priority}</span>
+        <span class="tag" style="background:${ic}22;color:${ic}">تأثير ${d.impact}</span>
+        ${d.source_agents?`<span class="tag" style="background:rgba(255,255,255,.05);color:var(--gray)">📌 ${Array.isArray(d.source_agents)?d.source_agents.join('، '):d.source_agents}</span>`:''}
+        ${!compact&&d.kpi?`<span class="tag" style="background:rgba(0,188,212,.08);color:#00BCD4">🎯 ${d.kpi}</span>`:''}
+      </div>
+    </div>
+    ${!compact&&v===undefined?`<div class="dec-actions">
+      <button class="btn-approve" onclick="vote(${i},true)">✅ موافقة</button>
+      <button class="btn-defer" onclick="vote(${i},false)">⏸ تأجيل</button>
+    </div>`:''}
+    ${v===true?`<div style="color:#00C853;font-size:18px">✅</div>`:''}
+    ${v===false?`<div style="color:var(--gray);font-size:18px">⏸</div>`:''}
+  </div>`;
+}
+
+function renderAgents() {
+  if (!Object.keys(S.agentData).length) return `<div class="empty-main"><div class="waiting-spinner"></div><div style="margin-top:10px">الوكلاء يعملون...</div></div>`;
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    ${AG.map(ag => {
+      const res = S.agentData[ag.id]; if (!res) return '';
+      const ex = Object.entries(res).filter(([k]) => !['findings', 'score'].includes(k));
+      return `<div style="background:var(--card);border:1px solid ${ag.c}22;border-right:3px solid ${ag.c};border-radius:12px;padding:1rem;animation:fadeIn .4s ease">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="width:32px;height:32px;border-radius:9px;background:${ag.bg};display:flex;align-items:center;justify-content:center;font-size:16px">${ag.i}</div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:700;color:${ag.c}">${ag.n}</div></div>
+          ${ring(res.score || 0, ag.c, 44)}</div>
+        ${(res.findings || []).map(f => `<div style="display:flex;gap:6px;font-size:11px;color:var(--text);line-height:1.6;margin-bottom:5px;padding-right:8px;border-right:2px solid ${ag.c}33"><span style="color:${ag.c}">•</span>${f}</div>`).join('')}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px">
+          ${ex.map(([k, v]) => `<div style="background:rgba(0,0,0,.2);border-radius:7px;padding:6px 8px"><div style="font-size:9px;color:${ag.c};font-weight:700;margin-bottom:2px">${k}</div><div style="font-size:11px;color:var(--text)">${v}</div></div>`).join('')}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderFullLog() {
+  return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;height:100%;overflow-y:auto">
+    <div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:10px">📡 السجل الكامل</div>
+    ${S.log.map(l => `<div class="log-row" style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.025)"><span class="log-time">${l.t}</span><span class="log-icon">${l.icon}</span><span class="log-msg" style="color:${l.color}">${l.msg}</span></div>`).join('')}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════════════════════
+function setNav(nav) {
+  S.activeNav = nav;
+  const mc = document.getElementById('mainContent');
+  if (mc) {
+    mc.innerHTML = renderMainContent();
+    if (nav === 'overview') setTimeout(() => buildCharts(), 100);
+  }
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('onclick')?.includes(`'${nav}'`));
+  });
+}
+
+function vote(i, v) {
+  S.votes[i] = v;
+  const mc = document.getElementById('mainContent');
+  if (mc) mc.innerHTML = renderMainContent();
+  if (S.activeNav === 'overview') setTimeout(() => buildCharts(), 100);
+}
+
+function backToUpload() {
+  S.screen = 'upload'; S.fileText = ''; S.fileName = '';
+  S.agentData = {}; S.agentStatus = {}; S.masterData = null;
+  S.masterStatus = 'idle'; S.log = []; S.votes = {};
+  Object.values(S.charts).forEach(c => c.destroy?.());
+  S.charts = {};
+  renderUpload();
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+renderUpload();
+</script>
+</body>
+</html>
